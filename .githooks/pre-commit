@@ -1,0 +1,17 @@
+#!/bin/sh
+# Не даём закоммитить секреты: gitleaks по staged-изменениям + запрет env-файлов с данными.
+# Включение (один раз): git config core.hooksPath .githooks
+set -e
+if git diff --cached --name-only | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' >/dev/null; then
+  echo "pre-commit: env-файл с секретами в коммите:" >&2
+  git diff --cached --name-only | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' >&2
+  exit 1
+fi
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --no-banner --config .gitleaks.toml . || {
+    echo "pre-commit: gitleaks нашёл секрет (см. выше). Уберите его из коммита." >&2
+    exit 1
+  }
+else
+  echo "pre-commit: gitleaks не установлен (brew install gitleaks) — проверка секретов пропущена" >&2
+fi

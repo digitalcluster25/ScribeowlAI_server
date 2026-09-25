@@ -1,0 +1,10 @@
+# gitleaks: проверка секретов перед коммитом (.githooks/pre-commit) и вручную: gitleaks git --log-opts="--all"
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Фейковые ключи в тестах и шаблон env без значений"
+paths = [
+  '''(^|/)tests/.*''',
+  '''(^|/)\.env\.example$''',
+]

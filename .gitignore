@@ -1,0 +1,26 @@
+# секреты: любые env-файлы, кроме шаблона
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+service-account*.json
+
+# python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+
+# tooling
+.claude/
+.DS_Store
