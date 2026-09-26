@@ -24,4 +24,16 @@ uv run uvicorn app.main:app --reload --port 8000
 - `app/db/` — Supabase PostgREST с secret key (таблицы закрыты RLS для клиентов).
 - `app/api/` — HTTP API: `/transcripts`, `/providers`, `/settings/ai`, `/ai/stream` (SSE), `/ai/translate`.
 
-Схема БД и миграции Supabase сейчас лежат в репозитории фронтенда (`supabase/`).
+- `supabase/` — схема БД и миграции (Supabase CLI), локальный стек на портах 553xx.
+
+## База данных (Supabase)
+```bash
+brew install supabase/tap/supabase   # нужен Docker Desktop
+supabase start                        # из этой папки; API http://127.0.0.1:55321, Studio :55323
+supabase status -o env                # URL и ключи для .env
+supabase migration new <name>         # новая миграция; старые не редактировать
+supabase migration up --local         # применить новые миграции без потери данных
+supabase db diff --local              # сверить миграции со схемой (теневая БД)
+```
+Таблицы закрыты для клиентов (RLS без политик, гранты anon/authenticated отозваны) —
+работает только сервер с secret key.

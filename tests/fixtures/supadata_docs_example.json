@@ -1,0 +1,8 @@
+{
+  "content": [
+    {"text": "Never gonna give you up", "offset": 18000, "duration": 3400, "lang": "en"},
+    {"text": "Never gonna let you down", "offset": 21400, "duration": 2900, "lang": "en"}
+  ],
+  "lang": "en",
+  "availableLangs": ["en", "de", "ja"]
+}

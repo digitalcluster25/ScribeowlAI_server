@@ -1,0 +1,7 @@
+# Transcript unavailable
+
+Video ID: AAAAAAAAAAA
+
+Reason: {"error":"YouTube: This video is unavailable"}
+
+Try the interactive tool: https://youtube-transcript.ai/transcript?v=AAAAAAAAAAA
