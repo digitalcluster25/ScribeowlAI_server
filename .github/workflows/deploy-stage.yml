@@ -25,6 +25,37 @@ jobs:
         run: |
           docker save scribeowl-api:stage | gzip -1 > scribeowl-api-stage.tar.gz
           tar -czf supabase-migrations.tar.gz supabase/config.toml supabase/migrations
+      # server.env / db.env собираются из GitHub Secrets (STAGE_*) — на VPS руками ничего не храним
+      - name: Write env files from GitHub Secrets
+        if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
+        env:
+          APP_ENV: ${{ secrets.STAGE_APP_ENV }}
+          CORS_ORIGINS: ${{ secrets.STAGE_CORS_ORIGINS }}
+          SUPABASE_URL: ${{ secrets.STAGE_SUPABASE_URL }}
+          SUPABASE_JWKS_URL: ${{ secrets.STAGE_SUPABASE_JWKS_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.STAGE_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGE_SUPABASE_SERVICE_ROLE_KEY }}
+          CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.STAGE_CREDENTIALS_ENCRYPTION_KEY }}
+          # необязательные: ключи сервиса транскрипции «от сервера» (пользователь может добавить свой в профиле)
+          TRANSCRIPTAPI_API_KEY: ${{ secrets.STAGE_TRANSCRIPTAPI_API_KEY }}
+          SUPADATA_API_KEY: ${{ secrets.STAGE_SUPADATA_API_KEY }}
+          CHOCODATA_API_KEY: ${{ secrets.STAGE_CHOCODATA_API_KEY }}
+          EASYTRANSCRIBER_API_KEY: ${{ secrets.STAGE_EASYTRANSCRIBER_API_KEY }}
+          STAGE_SUPABASE_DB_URL: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+        run: |
+          umask 077
+          required="APP_ENV CORS_ORIGINS SUPABASE_URL SUPABASE_JWKS_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY CREDENTIALS_ENCRYPTION_KEY"
+          optional="TRANSCRIPTAPI_API_KEY SUPADATA_API_KEY CHOCODATA_API_KEY EASYTRANSCRIBER_API_KEY"
+          missing=""
+          for v in $required; do [ -n "${!v}" ] || missing="$missing STAGE_$v"; done
+          [ -n "$STAGE_SUPABASE_DB_URL" ] || missing="$missing STAGE_SUPABASE_DB_URL"
+          if [ -n "$missing" ]; then echo "::error::GitHub Secrets not set:$missing"; exit 1; fi
+          : > server.env
+          for v in $required $optional; do
+            if [ -n "${!v}" ]; then printf '%s=%s\n' "$v" "${!v}" >> server.env; fi
+          done
+          printf 'STAGE_SUPABASE_DB_URL=%s\n' "$STAGE_SUPABASE_DB_URL" > db.env
+          echo "server.env: $(cut -d= -f1 server.env | tr '\n' ' ')"
       - name: Configure SSH
         if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
         env:
@@ -38,8 +69,10 @@ jobs:
       - name: Deploy to VPS
         if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
         run: |
-          ssh root@69.62.121.157 'test -s /opt/scribeowl-api/server.env && test -s /opt/scribeowl-api/db.env'
-          scp scribeowl-api-stage.tar.gz supabase-migrations.tar.gz deploy/compose.stage.yml deploy/deploy-stage.sh root@69.62.121.157:/opt/scribeowl-api/
+          ssh root@69.62.121.157 'install -d -m 750 /opt/scribeowl-api'
+          scp server.env db.env scribeowl-api-stage.tar.gz supabase-migrations.tar.gz deploy/compose.stage.yml deploy/deploy-stage.sh root@69.62.121.157:/opt/scribeowl-api/
+          ssh root@69.62.121.157 'chmod 600 /opt/scribeowl-api/server.env /opt/scribeowl-api/db.env'
+          rm -f server.env db.env
           ssh root@69.62.121.157 'cd /opt/scribeowl-api && tar -xzf supabase-migrations.tar.gz && bash deploy-stage.sh'
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error https://scribe-api.spaces.community/health; then
