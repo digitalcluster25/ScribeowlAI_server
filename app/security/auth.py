@@ -18,10 +18,11 @@ class CurrentUser:
 
 
 class SupabaseJWTVerifier:
-    def __init__(self, supabase_url: str, audience: str = "authenticated"):
+    def __init__(self, supabase_url: str, audience: str = "authenticated", jwks_url: str | None = None):
         self.issuer = supabase_url.rstrip("/") + "/auth/v1"
         self.audience = audience
-        self._jwks = jwt.PyJWKClient(self.issuer + "/.well-known/jwks.json", cache_keys=True, lifespan=600)
+        self._jwks = jwt.PyJWKClient(jwks_url or self.issuer + "/.well-known/jwks.json",
+                                     cache_keys=True, lifespan=600)
 
     def verify(self, token: str) -> CurrentUser:
         try:

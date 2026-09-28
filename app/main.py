@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI):
     db = SupabaseRest(settings.supabase_url, settings.supabase_service_role_key) \
         if settings.supabase_url and settings.supabase_service_role_key else None
     app.state.ai = build_ai(db)
-    app.state.jwt_verifier = SupabaseJWTVerifier(settings.supabase_url or "http://127.0.0.1:55321")
+    app.state.jwt_verifier = SupabaseJWTVerifier(settings.supabase_url or "http://127.0.0.1:55321",
+                                                 jwks_url=settings.supabase_jwks_url or None)
     yield
     await registry.aclose()
     await app.state.ai.registry.aclose()
