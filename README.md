@@ -13,6 +13,26 @@ uv run uvicorn app.main:app --reload --port 8000
 ```
 Документация API: http://127.0.0.1:8000/docs
 
+## Stage на VPS
+
+PR в `stage` запускает тесты и сборку Docker-образа. После слияния в `stage`
+GitHub Actions доставляет образ и миграции на VPS, где они применяются перед запуском API на
+`https://scribe-api.spaces.community` (`/health`). Фронтенд находится отдельно
+на `https://scribe.spaces.community`.
+
+Перед первым деплоем нужны:
+
+- GitHub Secrets `STAGE_DEPLOY_SSH_KEY` и `STAGE_DEPLOY_KNOWN_HOSTS` для доступа к VPS.
+- На VPS файл `/opt/scribeowl-api/db.env` с правами `0600` и
+  `STAGE_SUPABASE_DB_URL` (строка подключения к базе Supabase с паролем).
+- На VPS файл `/opt/scribeowl-api/server.env` с правами `0600`: `APP_ENV=stage`,
+  `CORS_ORIGINS=https://scribe.spaces.community`, `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` и
+  `CREDENTIALS_ENCRYPTION_KEY`. Значения ключей не коммитить.
+- При публикации обновлённого клиента собрать его с
+  `VITE_API_URL=https://scribe-api.spaces.community` и публичными значениями
+  Supabase того же проекта.
+
 Защита от коммита секретов (один раз на машине): `git config core.hooksPath .githooks`
 
 ## Устройство
@@ -24,4 +44,16 @@ uv run uvicorn app.main:app --reload --port 8000
 - `app/db/` — Supabase PostgREST с secret key (таблицы закрыты RLS для клиентов).
 - `app/api/` — HTTP API: `/transcripts`, `/providers`, `/settings/ai`, `/ai/stream` (SSE), `/ai/translate`.
 
-Схема БД и миграции Supabase сейчас лежат в репозитории фронтенда (`supabase/`).
+- `supabase/` — схема БД и миграции (Supabase CLI), локальный стек на портах 553xx.
+
+## База данных (Supabase)
+```bash
+brew install supabase/tap/supabase   # нужен Docker Desktop
+supabase start                        # из этой папки; API http://127.0.0.1:55321, Studio :55323
+supabase status -o env                # URL и ключи для .env
+supabase migration new <name>         # новая миграция; старые не редактировать
+supabase migration up --local         # применить новые миграции без потери данных
+supabase db diff --local              # сверить миграции со схемой (теневая БД)
+```
+Таблицы закрыты для клиентов (RLS без политик, гранты anon/authenticated отозваны) —
+работает только сервер с secret key.

@@ -1,0 +1,50 @@
+name: Stage API
+
+on:
+  pull_request:
+    branches: [stage]
+  push:
+    branches: [stage]
+  workflow_dispatch:
+
+concurrency:
+  group: stage-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run API tests
+        run: docker build --target test .
+      - name: Build API image
+        run: docker build -t scribeowl-api:stage .
+      - name: Package image
+        if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
+        run: |
+          docker save scribeowl-api:stage | gzip -1 > scribeowl-api-stage.tar.gz
+          tar -czf supabase-migrations.tar.gz supabase/config.toml supabase/migrations
+      - name: Configure SSH
+        if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGE_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGE_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Deploy to VPS
+        if: github.ref == 'refs/heads/stage' && github.event_name != 'pull_request'
+        run: |
+          ssh root@69.62.121.157 'test -s /opt/scribeowl-api/server.env && test -s /opt/scribeowl-api/db.env'
+          scp scribeowl-api-stage.tar.gz supabase-migrations.tar.gz deploy/compose.stage.yml deploy/deploy-stage.sh root@69.62.121.157:/opt/scribeowl-api/
+          ssh root@69.62.121.157 'cd /opt/scribeowl-api && tar -xzf supabase-migrations.tar.gz && bash deploy-stage.sh'
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error https://scribe-api.spaces.community/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
