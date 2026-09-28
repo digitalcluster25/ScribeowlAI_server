@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/scribeowl-api/server.env
+    networks:
+      - default
+      - supabase
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
       interval: 30s
@@ -17,3 +20,9 @@ services:
       - "traefik.http.routers.scribeowl-api-stage.entrypoints=websecure"
       - "traefik.http.routers.scribeowl-api-stage.tls.certresolver=letsencrypt"
       - "traefik.http.services.scribeowl-api-stage.loadbalancer.server.port=8000"
+      - "traefik.docker.network=scribeowl-api_default"
+
+networks:
+  supabase:
+    external: true
+    name: supabase_default
