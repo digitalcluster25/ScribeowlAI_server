@@ -1,0 +1,19 @@
+services:
+  api:
+    image: scribeowl-api:stage
+    container_name: scribeowl-api-stage
+    restart: unless-stopped
+    env_file:
+      - /opt/scribeowl-api/server.env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.scribeowl-api-stage.rule=Host(`scribe-api.spaces.community`)"
+      - "traefik.http.routers.scribeowl-api-stage.entrypoints=websecure"
+      - "traefik.http.routers.scribeowl-api-stage.tls.certresolver=letsencrypt"
+      - "traefik.http.services.scribeowl-api-stage.loadbalancer.server.port=8000"

@@ -13,6 +13,25 @@ uv run uvicorn app.main:app --reload --port 8000
 ```
 Документация API: http://127.0.0.1:8000/docs
 
+## Stage на VPS
+
+PR в `stage` запускает тесты и сборку Docker-образа. После слияния в `stage`
+GitHub Actions применяет миграции Supabase и разворачивает API на
+`https://scribe-api.spaces.community` (`/health`). Фронтенд находится отдельно
+на `https://scribe.spaces.community`.
+
+Перед первым деплоем нужны:
+
+- GitHub Secrets `STAGE_DEPLOY_SSH_KEY`, `STAGE_DEPLOY_KNOWN_HOSTS` и
+  `STAGE_SUPABASE_DB_URL` (строка подключения к базе Supabase с паролем).
+- На VPS файл `/opt/scribeowl-api/server.env` с правами `0600`: `APP_ENV=stage`,
+  `CORS_ORIGINS=https://scribe.spaces.community`, `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` и
+  `CREDENTIALS_ENCRYPTION_KEY`. Значения ключей не коммитить.
+- При публикации обновлённого клиента собрать его с
+  `VITE_API_URL=https://scribe-api.spaces.community` и публичными значениями
+  Supabase того же проекта.
+
 Защита от коммита секретов (один раз на машине): `git config core.hooksPath .githooks`
 
 ## Устройство
