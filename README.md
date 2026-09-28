@@ -20,21 +20,24 @@ GitHub Actions доставляет образ и миграции на VPS, г�
 `https://scribe-api.spaces.community` (`/health`). Фронтенд находится отдельно
 на `https://scribe.spaces.community`.
 
-Перед первым деплоем нужны:
+Настройки окружения хранятся в **GitHub Secrets** (переменные те же, что в локальном `.env`, с префиксом `STAGE_`).
+При каждом деплое workflow собирает из них `/opt/scribeowl-api/server.env` и `db.env` на VPS (права `0600`);
+руками на сервере ничего не храним. Новому разработчику ключи stage не нужны — локально у него свой `.env`.
 
-- GitHub Secrets `STAGE_DEPLOY_SSH_KEY` и `STAGE_DEPLOY_KNOWN_HOSTS` для доступа к VPS.
-- На VPS файл `/opt/scribeowl-api/db.env` с правами `0600` и
-  `STAGE_SUPABASE_DB_URL` (строка подключения к базе Supabase с паролем).
-- На VPS файл `/opt/scribeowl-api/server.env` с правами `0600`: `APP_ENV=stage`,
-  `CORS_ORIGINS=https://scribe.spaces.community`, `SUPABASE_URL`,
-  `SUPABASE_JWKS_URL=http://api-gw:8000/auth/v1/.well-known/jwks.json`,
-  `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` и
-  `CREDENTIALS_ENCRYPTION_KEY`. Значения ключей не коммитить.
-- Self-hosted Supabase должен быть запущен в Docker-сети `supabase_default`
-  (Postgres, Auth, PostgREST и API gateway); база доступна только с VPS.
-- При публикации обновлённого клиента собрать его с
-  `VITE_API_URL=https://scribe-api.spaces.community` и публичными значениями
-  Supabase того же проекта.
+| Переменная сервера | GitHub Secret | Обязательна |
+|---|---|---|
+| `APP_ENV` | `STAGE_APP_ENV` | да (`stage`) |
+| `CORS_ORIGINS` | `STAGE_CORS_ORIGINS` | да |
+| `SUPABASE_URL` | `STAGE_SUPABASE_URL` | да |
+| `SUPABASE_JWKS_URL` | `STAGE_SUPABASE_JWKS_URL` | да (внутренний `http://api-gw:8000/...`) |
+| `SUPABASE_ANON_KEY` | `STAGE_SUPABASE_ANON_KEY` | да (publishable key) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `STAGE_SUPABASE_SERVICE_ROLE_KEY` | да |
+| `CREDENTIALS_ENCRYPTION_KEY` | `STAGE_CREDENTIALS_ENCRYPTION_KEY` | да — не менять, иначе ключи пользователей не расшифруются |
+| `STAGE_SUPABASE_DB_URL` (db.env, миграции) | `STAGE_SUPABASE_DB_URL` | да |
+| `TRANSCRIPTAPI_API_KEY`, `SUPADATA_API_KEY`, `CHOCODATA_API_KEY`, `EASYTRANSCRIBER_API_KEY` | `STAGE_…` | нет |
+
+Также нужны `STAGE_DEPLOY_SSH_KEY` и `STAGE_DEPLOY_KNOWN_HOSTS` (доступ к VPS). Если обязательный секрет не задан,
+деплой останавливается с их списком. Self-hosted Supabase работает в Docker-сети `supabase_default`; база доступна только с VPS.
 
 Защита от коммита секретов (один раз на машине): `git config core.hooksPath .githooks`
 
