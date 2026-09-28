@@ -27,8 +27,11 @@ GitHub Actions доставляет образ и миграции на VPS, г�
   `STAGE_SUPABASE_DB_URL` (строка подключения к базе Supabase с паролем).
 - На VPS файл `/opt/scribeowl-api/server.env` с правами `0600`: `APP_ENV=stage`,
   `CORS_ORIGINS=https://scribe.spaces.community`, `SUPABASE_URL`,
+  `SUPABASE_JWKS_URL=http://api-gw:8000/auth/v1/.well-known/jwks.json`,
   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` и
   `CREDENTIALS_ENCRYPTION_KEY`. Значения ключей не коммитить.
+- Self-hosted Supabase должен быть запущен в Docker-сети `supabase_default`
+  (Postgres, Auth, PostgREST и API gateway); база доступна только с VPS.
 - При публикации обновлённого клиента собрать его с
   `VITE_API_URL=https://scribe-api.spaces.community` и публичными значениями
   Supabase того же проекта.

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5174,http://localhost:5174"
     # Supabase: SUPABASE_URL = API_URL, ANON_KEY = publishable/anon, SERVICE_ROLE_KEY = secret/service_role (только сервер)
     supabase_url: str = ""
+    supabase_jwks_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
     # Транскрипт-провайдеры (ключи только на сервере)
